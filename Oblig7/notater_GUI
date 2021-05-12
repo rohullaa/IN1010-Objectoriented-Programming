@@ -1,0 +1,6 @@
+Tips for GUI-program:
+* Finn ut nøyaktig hva programmet skal gjøre
+* Lag en håndtegning på papir av alle elementene
+* Skriv kode som genererer elementene
+* Lag EventHandler-klassene (?)
+* Skriv resten av programmet
