@@ -2,28 +2,28 @@ import java.util.HashMap;
 import java.util.ArrayList;
 
 public class Beholder{
-  private ArrayList<HashMap<String,Subsekvens> > liste;
-  private boolean virusTilstand;//true hvis personen har hatt viruset og false for motsatt
+  ArrayList<HashMap<String,SubSekvens> > liste = new ArrayList<HashMap<String,SubSekvens> >();
+  int antall = 0;
 
-  public Beholder(boolean virusTilstand){
-    this.virusTilstand = virusTilstand;
-    liste = new ArrayList<HashMap<String,Subsekvens>>();
-  }
-
-  public void leggTilHash(HashMap<String, Subsekvens> h){
+  public void leggTilHashMap(HashMap<String, SubSekvens> h){
+    antall ++;
     liste.add(h);
   }
 
-  public HashMap<String, Subsekvens> taUtHash(){
+  public HashMap<String, SubSekvens> taUtHashMap()throws IndexOutOfBoundsException{
+    antall--;
     return liste.remove(0);
   }
-  public ArrayList<HashMap<String,Subsekvens> > hentListe(){
-    return liste;
+
+  public int hentAntall(){
+    return antall;
   }
 
-  public int hentLengde(){
-    return liste.size();
+  public void testHele () {
+      System.out.println(" Utskrift av antallet i hver hashmap i beholderen; ");
+      for (HashMap<String,SubSekvens> hashN: liste){
+        System.out.println(" Storrelsen av HashMap:  " + hashN.size());
+      }
   }
-
 
 }

@@ -1,10 +1,10 @@
-class Subsekvens{
+class SubSekvens{
   private int antall;
   private String sekvens;
 
-  public Subsekvens(String sekvens){
+  public SubSekvens(String sekvens,int antall){
     this.sekvens = sekvens;
-    antall = 1;
+    this.antall = antall;
   }
 
   public String hentSekvens(){
@@ -16,7 +16,7 @@ class Subsekvens{
   }
 
   public void leggTilForekomster(int nyForekomst){
-    antall = antall + nyForekomst;
+    antall += nyForekomst;
   }
 
 }

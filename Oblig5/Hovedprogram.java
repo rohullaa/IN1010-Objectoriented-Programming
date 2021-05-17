@@ -1,104 +1,56 @@
 import java.util.*;
 import java.io.*;
-import java.util.concurrent.CountDownLatch;
 
-class Hovedprogram{
-  static final int subLengde = 3;
-  static String filBane = "./Data";
-  static HashMap <String, Boolean> metadataHash;
+public class Hovedprogram{
+  static int subLengde = 3; //velger lengden av SubSekvenser til aa vaere 3
+  static String metadataRetning = "TestData/metadata.csv";
 
-  public static void main(String[] args)throws Exception{
-    int antallTraader = Integer.valueOf(args[0]);
-    System.out.println();
-    System.out.println("Programmet kjorer.Vennligst vent!");
-    System.out.println();
+  public static void main (String [ ] args) throws IOException {
+    String linje;
+    //definerer to beholdere, en for positiv og en for negativ
+    Beholder beholderTrue = new Beholder();
+    Beholder beholderFalse = new Beholder();
 
-    Beholder negativBeholder = new Beholder(false);
-    Beholder positivBeholder = new Beholder(true);
-    MonitorFletting monitor = new MonitorFletting(positivBeholder,negativBeholder);
-    File[] alleFiler = (new File(filBane)).listFiles(); //henter navn til alle filene i testData-filen
-
-    //fyller metadata HashMap med data fra metadata-filen
-    metadataHash = hentData("metadata.csv",filBane);
-
-    //finner Subsekvenser:
-    CountDownLatch barriere = new CountDownLatch(alleFiler.length); //lager barriere med samme lengde som antall filer
-    for(File fil: alleFiler){
-      if(metadataHash.containsKey(fil.getName())){ //hvis metadataHash inneholder filnavnet
-        Runnable minRun = new MinRun(fil,metadataHash.get(fil.getName()),barriere,monitor);
-        Thread traad = new Thread(minRun);//lager traad for hver fil
-        traad.run();
-      }else{
-        barriere.countDown();
-      }
-    }
     try{
-      barriere.await();
-    }catch (InterruptedException e) {
-      System.out.println(e.getMessage());
-    }
+        //scanner filnavnene
+        Scanner leser = new Scanner(new File(metadataRetning));
+        leser.nextLine(); //ignorerer forste linjen
 
-    //setter i gang flettingen
-    CountDownLatch nyBarriere = new CountDownLatch(antallTraader); //lager barrierer med samme lengde som burkeren taster inn
-    //fordeler antall traader
-    int antallTraaderPositiv = antallTraader/2;
-    int antallTraaderNegativ = antallTraader - antallTraaderPositiv;
-    for(int i = 0; i < alleFiler.length; i++){
-      if(antallTraaderPositiv > 0){
-        Thread traad = new Thread(new RunFletting(true,nyBarriere,monitor));
-        traad.start();
-        antallTraaderPositiv--;
-      }
+        while(leser.hasNextLine()) {
+          linje = leser.nextLine();
+          linje = linje.trim();
 
-      if(antallTraaderNegativ > 0){
-        Thread traad = new Thread(new RunFletting(false,nyBarriere,monitor));
-        traad.start();
-        antallTraaderNegativ--;
-      }
-    }try {
-      nyBarriere.await();
-    } catch (InterruptedException e){
-      System.out.println(e.getMessage());
-    }
+          //lagrer informasjon av personer og dersom de har hatt virus eller ikke.
+          String[] filData = linje.split(",");
+          //basert paa om de har hatt viruset før eller ikke, saa lages det nye traader
+          if(filData[1].equals("True")){
+            new Thread(new LagringSubSekvens(filData[0],beholderTrue,subLengde)).start();
+          }else{
+            new Thread(new LagringSubSekvens(filData[0],beholderFalse,subLengde)).start();
+          }
+        }
+        leser.close();
+    } catch (IOException e) {System.out.println(e.getMessage()); }
 
-    //statistikk:
-    HashMap<String,Subsekvens> h1 = monitor.hentHash(true).get(0);
-    HashMap<String,Subsekvens> h2 = monitor.hentHash(false).get(0);
+    //slaar sammen hashmaper og legger resultatet tilbake i beholderen
+    SammenSlaaing slaarPositiv = new SammenSlaaing(beholderTrue);
+    SammenSlaaing slaarNegativ = new SammenSlaaing(beholderFalse);
 
-    System.out.println();
-    System.out.println( "Subsekvens - forekomster1 - forekomster2 - differeranse");
+    beholderTrue = slaarPositiv.slaaSammen();
+    beholderFalse = slaarNegativ.slaaSammen();
 
-    for(String key: h2.keySet()){
-      if(h1.containsKey(key)){
-        int forekomster1 = h1.get(key).hentAntall();
-        int forekomster2 = h2.get(key).hentAntall();
-        //differeranse mellom alle har som hatt minus alle som ikke har hatt
-        int differeranse = forekomster1 - forekomster2;
-        if(differeranse >= 5){
-          System.out.format("%3s %2d %2d %2d", key, forekomster1, forekomster2,differeranse);
-          System.out.println();
+    //kjorer statistikk delen ved aa hente ut den siste hashmappen i begge beholdere,
+    //og sjekke dersom forskjellen mellom antall forekomster er storre eller lik 5
+    HashMap<String,SubSekvens> personPositiv = beholderTrue.taUtHashMap();
+    HashMap<String,SubSekvens> personNegativ = beholderFalse.taUtHashMap();
+
+    for(SubSekvens pp:personPositiv.values()){
+      for(SubSekvens pn:personNegativ.values()){
+        int forskjell = pp.hentForekomster() - pn.hentForekomster();
+        if(forskjell >= 5){
+          System.out.println("AntallForekomster: "+ pp.hentForekomster()+ ""+pn.hentForekomster()+"med: "+ pp.hentSekvens());
         }
       }
     }
   }
-
-  private static HashMap<String, Boolean> hentData(String metadata, String filnavn) throws Exception,FileNotFoundException {
-    HashMap<String, Boolean> hash = new HashMap<>();
-    File f = new File(filnavn + "/" + metadata);
-
-      Scanner sc = new Scanner(f);
-      while (sc.hasNext()) {
-        String linje = sc.nextLine();
-        String[] info = linje.trim().split(",");
-        try {
-          hash.put(info[0], Boolean.valueOf(info[1].toLowerCase()));
-        } catch (Exception e) {
-          System.out.println("Feil format. linje: " + linje);
-        }
-      }
-      sc.close();
-
-    return hash;
-  }
-
 }

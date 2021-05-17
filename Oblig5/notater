@@ -1,0 +1,48 @@
+* Program for å analysere blodprøver finner sekvensmønstre som indikerer en infeksjon av et bestemt
+  virus.
+
+* Immunrepertoar består av mange immunreseptorer som er proteiner som gjenkjenner viruset.
+* Immunrepertoar av en person er representert med en fil
+* Hver immunreseptor er representert som en sekvens av (store) bokstaver
+* Vi ønsker å analysere og finne mønstre i disse sekvensene fra folk som har og
+ som ikke har hatt viruset. Mønstrene vi ser etter er subsekvenser av reseptorsekvensene.
+Til slutt, etter å ha funnet antall forekomster av alle subsekvensene,
+vil vi avgjøre hvilke mønstre som i sterkest grad forekommer fortrinnsvis hos personer
+som vi vet har hatt viruset. Disse dominante mønstrene kan deretter brukes til å diagnostisere
+nye personer mistenkt for å være smittet av det bestemte viruset.
+
+
+static void lagringAvData(String filnavn, Beholder totalHash){
+  String linje, subStreng;
+  String[] filData = filnavn.split(",");
+
+  //lagrer informasjon av personer og dersom de har hatt virus eller ikke
+  if(filData[1]=="True"){
+    virusData.put(filData[0],true);
+  }else{
+    virusData.put(filData[0],false);
+  }
+
+  //scanner og lagrer subsekvenser
+  try {
+    Scanner leser = new Scanner(new File("TestData/"+filData[0]));
+    HashMap<String,SubSekvens>  subSekvenseHash = new HashMap <> ();
+    System.out.println(" Virussjekker leser fil   " + filData[0] );
+
+    while(leser.hasNextLine()){
+      linje = leser.nextLine();
+      linje = linje.trim();
+      for (int ind = 0; ind + subLengde <= linje.length(); ind ++) {
+          subStreng = linje.substring(ind,ind+subLengde);
+
+          //putter subStrengen kun dersom det er ingen slik subStreng fra før i HashMap (inge duplikater)
+          subSekvenseHash.putIfAbsent(subStreng,new SubSekvens(subStreng,1));
+      }
+    }
+    leser.close();
+    totalHash.leggTilHashMap(subSekvenseHash);
+  }catch (IOException e) {
+    System.out.println(e.getMessage());
+    System.exit(1);
+  }
+}
